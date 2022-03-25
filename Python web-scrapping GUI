@@ -178,3 +178,30 @@ def update_layout(n, btn1):
    figure3 = {
        'data': [
            go.Scatter(x=df['time'], y=df['Gas_Resistance'], mode='lines+markers')
+                  ],
+       'layout': {
+           'title': 'Gas Resistance'
+       }
+   }
+
+   figure['layout']['uirevision'] = 1
+   figure1['layout']['uirevision'] = 2
+   figure2['layout']['uirevision'] = 3
+   figure3['layout']['uirevision'] = 4
+
+   changed_id = [p['prop_id'] for p in callback_context.triggered][0]
+   if 'btn-nclicks-1' in changed_id:
+       df.to_csv(directory_path)
+       print("saved")
+   else:
+       if btn1 > 0:
+           msg = "saved (Times Clicked: ", btn1, ")"
+           return figure, figure1, figure2, figure3, msg
+       else:
+           msg = "not saved"
+           return figure, figure1, figure2, figure3, msg
+
+
+if __name__ == "__main__":
+   webbrowser.open("http://127.0.0.1:8050/")
+   app.run_server()
