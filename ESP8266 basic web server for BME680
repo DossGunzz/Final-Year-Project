@@ -102,3 +102,18 @@ void loop() {
             break;
         }
         if (c == '\n') {
+        
+                  // when starts reading a new line
+          blank_line = true;
+        }
+        else if (c != '\r') {
+          // when finds a character on the current line
+          blank_line = false;
+        }
+      }
+    }  
+    //delay(0.5);
+    client.stop();
+    Serial.println("Client disconnected.");
+  }
+}
