@@ -1,0 +1,180 @@
+import requests
+import time
+import re
+import os
+import webbrowser
+import dash
+import plotly.graph_objs as go
+import pandas as pd
+from bs4 import BeautifulSoup
+from datetime import datetime
+from pathlib import Path
+from dash import Dash, html, Input, Output, State, callback_context, dcc, html
+
+
+app = dash.Dash(__name__)
+
+Temperature = []
+Humidity = []
+Pressure = []
+Gases = []
+Time = []
+
+
+directory_path = os.path.join(os.environ['USERPROFILE'],'Downloads','out.csv')
+
+app.layout = html.Div([
+
+   html.Button('Download', id='btn-nclicks-1', n_clicks=0),
+   html.Div(id='container-button-timestamp'),
+
+
+   dcc.Graph(
+       id='graph1',
+       figure={
+           'data': [
+               go.Scatter(x=['time'], y=['Temperature'], mode='lines+markers')
+           ],
+           'layout': {
+               'title': 'Temperature'
+           }
+       }
+   ),
+   dcc.Graph(
+       id='graph2',
+       figure={
+           'data': [
+               go.Scatter(x=['time'], y=['Humidity'], mode='lines+markers')
+           ],
+           'layout': {
+               'title': 'Humidity'
+           }
+       }
+   ),
+   dcc.Graph(
+       id='graph3',
+       figure={
+           'data': [
+               go.Scatter(x=['time'], y=['Pressure'], mode='lines+markers')
+           ],
+           'layout': {
+               'title': 'Pressure'
+           }
+       }
+   ),
+   dcc.Graph(
+       id='graph4',
+       figure={
+           'data': [
+               go.Scatter(x=['time'], y=['Gases'], mode='lines+markers')
+           ],
+           'layout': {
+               'title': 'Gases'
+           }
+       }
+   ),
+   dcc.Interval(
+       id='1-second-interval',
+       interval=1000,
+       n_intervals=0
+   ),
+])
+
+
+
+@app.callback(Output('graph1', 'figure'),
+             Output('graph2', 'figure'),
+             Output('graph3', 'figure'),
+             Output('graph4', 'figure'),
+             Output('container-button-timestamp', 'children'),
+             Input('1-second-interval', 'n_intervals'),
+             Input('btn-nclicks-1', 'n_clicks'))
+
+
+def update_layout(n, btn1):
+   response = requests.get("http://192.168.0.102/")
+
+   current_time = datetime.now()
+
+   soup = BeautifulSoup(response.text, 'html.parser')
+
+   T = soup.select('h3')[0].text
+   H = soup.select('h3')[2].text
+   P = soup.select('h3')[1].text
+   G = soup.select('h3')[3].text
+   #T = soup.find(id="temp")
+   #H = soup.find(id="hum")
+   #P = soup.find(id="pres")
+   #G = soup.find(id="gas")
+
+   ExT = ''.join((ch if ch in '0123456789.-' else ' ') for ch in str(T))
+   Temp = [float(i) for i in ExT.split()]
+   ExH = ''.join((ch if ch in '0123456789.-' else ' ') for ch in str(H))
+   Hum = [float(i) for i in ExH.split()]
+   ExP = ''.join((ch if ch in '0123456789.-' else ' ') for ch in str(P))
+   Pres = [float(i) for i in ExP.split()]
+   ExG = ''.join((ch if ch in '0123456789.-' else ' ') for ch in str(G))
+   Gas = [float(i) for i in ExG.split()]
+
+   # print("Current Time =", current_time)
+   # print("Temperature = ", Temp[0] ," C")
+   # print("Humidity = ", Hum[0] ," %")
+   # print("Pressure = ", Pres[0] ," hPa")
+   # print("Gas = ", Gas[0] ," Kohm \n")
+
+   #x = len(Temperature)
+
+   #print(x)
+
+   #if x == 0 or x == 1:
+   #    Temperature.append(Temp[0])
+   #    print("2")
+   #elif abs(Temp[0] - Temperature[0]) < 0.5:
+   #    Temperature.append(Temperature[0])
+   #    print("3")
+   #else:
+   #    Temperature.append(Temp[0])
+   #    print("4")
+   Temperature.append(Temp[0])
+   Humidity.append(Hum[0])
+   Pressure.append(Pres[0])
+   Gases.append(Gas[0])
+   Time.append(current_time)
+
+   info = pd.DataFrame()
+
+   update = pd.DataFrame({"Temperature": Temperature,
+                          "Humidity": Humidity,
+                          "Pressure": Pressure,
+                          "Gas_Resistance": Gases,
+                          "time": Time})
+
+   df = info.append(update)
+
+   figure = {
+       'data': [
+           go.Scatter(x=df['time'], y=df['Temperature'], mode='lines+markers')
+       ],
+       'layout': {
+           'title': 'Temperature'
+       }
+   }
+   figure1 = {
+       'data': [
+           go.Scatter(x=df['time'], y=df['Humidity'], mode='lines+markers')
+       ],
+       'layout': {
+           'title': 'Humidity'
+       }
+   }
+   figure2 = {
+       'data': [
+           go.Scatter(x=df['time'], y=df['Pressure'], mode='lines+markers')
+       ],
+       'layout': {
+           'title': 'Pressure'
+       }
+   }
+   figure3 = {
+       'data': [
+           go.Scatter(x=df['time'], y=df['Gas_Resistance'], mode='lines+markers')
